@@ -57,24 +57,26 @@ def save_data(scenario, data, json_template):
         file_name = row.get("treatment") + "_" + \
             row.get("SITE_NOM") + "_" + scenario.name + ".json"
         directory_name = os.path.join(base_dir, scenario.name)
+
         os.makedirs(directory_name, exist_ok=True)
+
         with open(os.path.join(directory_name, file_name), "w") as json_file:
             json.dump(json_data, json_file)
 
 
-def to_json(data, template, scenario):
+def to_json(data, json, scenario):
     if scenario == Scenarios.PETP:
-        template["Inputs"]["Architecture_OK"]["Input_PetP"]["0"] = data["Input_PetP"]
-        template["Inputs"]["Architecture_OK"]["Input_Bioenergy"]["0"] = data["Input_Bioenergy"]
+        json["Inputs"]["Architecture_OK"]["Input_PetP"]["0"] = data["Input_PetP"]
+        json["Inputs"]["Architecture_OK"]["Input_Bioenergy"]["0"] = data["Input_Bioenergy"]
     elif scenario == Scenarios.PANEL:
-        template["Inputs"]["Architecture_OK"]["Input_Panneaux"]["0"] = data["Input_Panneaux"]
-        template["Inputs"]["Architecture_OK"]["Input_Bioenergy"]["0"] = data["Input_Bioenergy"]
+        json["Inputs"]["Architecture_OK"]["Input_Panneaux"]["0"] = data["Input_Panneaux"]
+        json["Inputs"]["Architecture_OK"]["Input_Bioenergy"]["0"] = data["Input_Bioenergy"]
     elif scenario == Scenarios.BIOMASS:
-        template["Inputs"]["Architecture_OK"]["Input_Bioenergy"]["0"] = data["Input_Bioenergy"] + \
+        json["Inputs"]["Architecture_OK"]["Input_Bioenergy"]["0"] = data["Input_Bioenergy"] + \
             data["Input_PulpBioenergy"]
-    template["Inputs"]["Architecture_OK"]["Input_Sciage_feuillus"]["0"] = data["Input_Sciage_feuillus"]
-    template["Inputs"]["Architecture_OK"]["Input_Sciage_resineux"]["0"] = data["Input_Sciage_resineux"]
-    return template
+    json["Inputs"]["Architecture_OK"]["Input_Sciage_feuillus"]["0"] = data["Input_Sciage_feuillus"]
+    json["Inputs"]["Architecture_OK"]["Input_Sciage_resineux"]["0"] = data["Input_Sciage_resineux"]
+    return json
 
 
 scenarios = [Scenarios.BIOMASS, Scenarios.PANEL, Scenarios.PETP]
