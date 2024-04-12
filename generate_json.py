@@ -5,12 +5,14 @@ import os
 
 
 csv_path = "./carbon_products_2019.2119.csv"
-directory_name = "json"
+base_dir = "json"
+json_path = "./input.json"
 
 
 class Scenarios(Enum):
     PETP = 1
     PANEL = 2
+    BIOMASS = 3
 
 
 def change_name(row):
@@ -24,6 +26,9 @@ def change_pulp(row, scenario):
     elif scenario == Scenarios.PANEL:
         row["Input_Panneaux"] = row.pop("carbon_pulp_kg.ha")
         row["Input_Panneaux"] = float(row["Input_Panneaux"])
+    elif scenario == Scenarios.BIOMASS:
+        row["Input_PulpBioenergy"] = row.pop("carbon_pulp_kg.ha")
+        row["Input_PulpBioenergy"] = float(row["Input_PulpBioenergy"])
 
 
 def change_sawtimberFX(row):
@@ -41,18 +46,41 @@ def change_biomass(row):
     row["Input_Bioenergy"] = float(row["Input_Bioenergy"])
 
 
-with open(csv_path, newline='') as csv_file:
-    data = csv.DictReader(csv_file, delimiter=',')
-    scenarios = [Scenarios.PANEL, Scenarios.PETP]
-    os.makedirs(directory_name)
-    for scenario in scenarios:
-        for row in data:
-            change_name(row)
-            change_pulp(row, scenario)
-            change_sawtimberFX(row)
-            change_sawtimberRX(row)
-            change_biomass(row)
-            file_name = row.get("treatment") + "_" + \
-                row.get("SITE_NOM") + "_" + scenario.name + ".json"
-            with open(os.path.join(directory_name, file_name), "w") as json_file:
-                json.dump(row, json_file)
+def save_data(scenario, data, json_template):
+    for row in data:
+        change_name(row)
+        change_pulp(row, scenario)
+        change_sawtimberFX(row)
+        change_sawtimberRX(row)
+        change_biomass(row)
+        json_data = to_json(row, json_template, scenario)
+        file_name = row.get("treatment") + "_" + \
+            row.get("SITE_NOM") + "_" + scenario.name + ".json"
+        directory_name = os.path.join(base_dir, scenario.name)
+        os.makedirs(directory_name, exist_ok=True)
+        with open(os.path.join(directory_name, file_name), "w") as json_file:
+            json.dump(json_data, json_file)
+
+
+def to_json(data, template, scenario):
+    if scenario == Scenarios.PETP:
+        template["Inputs"]["Architecture_OK"]["Input_PetP"]["0"] = data["Input_PetP"]
+        template["Inputs"]["Architecture_OK"]["Input_Bioenergy"]["0"] = data["Input_Bioenergy"]
+    elif scenario == Scenarios.PANEL:
+        template["Inputs"]["Architecture_OK"]["Input_Panneaux"]["0"] = data["Input_Panneaux"]
+        template["Inputs"]["Architecture_OK"]["Input_Bioenergy"]["0"] = data["Input_Bioenergy"]
+    elif scenario == Scenarios.BIOMASS:
+        template["Inputs"]["Architecture_OK"]["Input_Bioenergy"]["0"] = data["Input_Bioenergy"] + \
+            data["Input_PulpBioenergy"]
+    template["Inputs"]["Architecture_OK"]["Input_Sciage_feuillus"]["0"] = data["Input_Sciage_feuillus"]
+    template["Inputs"]["Architecture_OK"]["Input_Sciage_resineux"]["0"] = data["Input_Sciage_resineux"]
+    return template
+
+
+scenarios = [Scenarios.BIOMASS, Scenarios.PANEL, Scenarios.PETP]
+for scenario in scenarios:
+    with open(csv_path, newline='', mode='r') as csv_file:
+        with open(json_path, mode='r') as json_file:
+            json_template = json.load(json_file)
+            data = csv.DictReader(csv_file, delimiter=',')
+            save_data(scenario, data, json_template)
